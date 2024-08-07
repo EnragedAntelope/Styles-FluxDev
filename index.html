@@ -48,80 +48,84 @@
         <!-- Gallery items will be dynamically inserted here -->
     </div>
 
-    <script>
+<script>
         const apiUrl = 'https://api.github.com/repos/EnragedAntelope/Styles-FluxDev/contents/gallery-assets/';
         const rawContentUrl = 'https://raw.githubusercontent.com/EnragedAntelope/Styles-FluxDev/main/gallery-assets/';
 
-		async function fetchRepositoryContents() {
-			const response = await fetch(apiUrl);
-			const contents = await response.json();
-			return contents.filter(item => item.type === 'file'); // Only return files, not directories
-		}
+    async function fetchRepositoryContents() {
+        const response = await fetch(apiUrl);
+        const contents = await response.json();
+        return contents.filter(item => item.type === 'file');
+    }
 
-        async function fetchTextContent(path) {
-            const response = await fetch(rawContentUrl + path);
+    async function fetchTextContent(filename) {
+        try {
+            const response = await fetch(rawContentUrl + encodeURIComponent(filename));
+            if (!response.ok) {
+                throw new Error('Text file not found');
+            }
             return await response.text();
+        } catch (error) {
+            console.error('Error fetching text content:', error);
+            return '';
         }
+    }
 
-        function getFileExtension(filename) {
-            return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
-        }
+    function getFileExtension(filename) {
+        return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
+    }
 
-        async function createGallery() {
-            const gallery = document.getElementById('imageGallery');
-            const contents = await fetchRepositoryContents();
+    async function createGallery() {
+        const gallery = document.getElementById('imageGallery');
+        const contents = await fetchRepositoryContents();
+        
+        const imageFiles = contents.filter(file => ['jpg', 'jpeg', 'png', 'gif'].includes(getFileExtension(file.name).toLowerCase()));
+        
+        const galleryItems = await Promise.all(imageFiles.map(async (imageFile) => {
+            const textFileName = imageFile.name.replace(/\.[^/.]+$/, "") + ".txt";
             
-            const imageFiles = contents.filter(file => ['jpg', 'jpeg', 'png', 'gif'].includes(getFileExtension(file.name).toLowerCase()));
+            let description = await fetchTextContent(textFileName);
+
+            return {
+                imagePath: rawContentUrl + encodeURIComponent(imageFile.name),
+                title: imageFile.name.replace(/\.[^/.]+$/, "").replace(/_/g, ' '),
+                description: description
+            };
+        }));
+
+        // Alphabetize the gallery items by title
+        galleryItems.sort((a, b) => a.title.localeCompare(b.title));
+
+        galleryItems.forEach(item => {
+            const galleryItem = document.createElement('div');
+            galleryItem.className = 'gallery-item';
             
-            const galleryItems = await Promise.all(imageFiles.map(async (imageFile) => {
-                const textFileName = imageFile.name.replace(/\.[^/.]+$/, "") + ".txt";
-                const textFile = contents.find(file => file.name === textFileName);
-                
-                let description = '';
-                if (textFile) {
-                    description = await fetchTextContent(textFile.path);
-                }
+            const img = document.createElement('img');
+            img.src = item.imagePath;
+            img.alt = item.title;
+            
+            const caption = document.createElement('div');
+            caption.className = 'gallery-item-caption';
+            
+            const title = document.createElement('div');
+            title.className = 'gallery-item-title';
+            title.textContent = item.title;
+            
+            const description = document.createElement('div');
+            description.className = 'gallery-item-description';
+            description.textContent = item.description;
+            
+            caption.appendChild(title);
+            caption.appendChild(description);
+            
+            galleryItem.appendChild(img);
+            galleryItem.appendChild(caption);
+            
+            gallery.appendChild(galleryItem);
+        });
+    }
 
-                return {
-                imagePath: rawContentUrl + imageFile.name,
-                    title: imageFile.name.replace(/\.[^/.]+$/, "").replace(/_/g, ' '),
-                    description: description
-                };
-            }));
-
-            // Alphabetize the gallery items by title
-            galleryItems.sort((a, b) => a.title.localeCompare(b.title));
-
-            galleryItems.forEach(item => {
-                const galleryItem = document.createElement('div');
-                galleryItem.className = 'gallery-item';
-                
-                const img = document.createElement('img');
-                img.src = item.imagePath;
-                img.alt = item.title;
-                
-                const caption = document.createElement('div');
-                caption.className = 'gallery-item-caption';
-                
-                const title = document.createElement('div');
-                title.className = 'gallery-item-title';
-                title.textContent = item.title;
-                
-                const description = document.createElement('div');
-                description.className = 'gallery-item-description';
-                description.textContent = item.description;
-                
-                caption.appendChild(title);
-                caption.appendChild(description);
-                
-                galleryItem.appendChild(img);
-                galleryItem.appendChild(caption);
-                
-                gallery.appendChild(galleryItem);
-            });
-        }
-
-        createGallery();
-    </script>
+    createGallery();
+</script>
 </body>
 </html>
