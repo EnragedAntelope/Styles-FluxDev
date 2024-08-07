@@ -3,229 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Styles FluxDev Gallery</title>
+    <title>Flux Style Test Gallery</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 1200px;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f0f0f0;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
         }
         .intro {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
+            background-color: #f9f9f9;
+            border-left: 5px solid #2c3e50;
+            padding: 15px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
         }
         .gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
         }
-        .gallery-item {
-            background-color: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .gallery-item img {
-            width: 100%;
+        .gallery img {
+            max-width: 100%;
             height: auto;
-            display: block;
-        }
-        .gallery-item-caption {
-            padding: 10px;
-        }
-        .gallery-item-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        .gallery-item-description {
-            font-size: 14px;
-            font-style: italic;
-            color: #666;
+            margin-bottom: 10px;
         }
         .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            text-align: center;
             margin: 20px 0;
         }
-        .pagination button {
+        .pagination a {
             margin: 0 5px;
-            padding: 5px 10px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .pagination button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        #imageCounter {
-            text-align: center;
-            margin: 0 10px;
         }
     </style>
 </head>
 <body>
+    <h1>Flux Style Test Gallery</h1>
+
     <div class="intro">
-        <p>This is intended to identify styles that are incorporated into base Flux Dev. It is not a comprehensive list. Additionally, some of the generated prompts show that Flux recognizes the style, but better prompting might have applied it to the whole image potentially.</p>
+        <p>This gallery is intended to identify styles that are incorporated into base Flux Dev. It is not a comprehensive list. Additionally, some of the generated prompts show that Flux recognizes the style, but better prompting might have applied it to the whole image potentially.</p>
+
         <p>All images were generated using <a href="https://github.com/comfyanonymous/ComfyUI" target="_blank">ComfyUI</a> and <a href="https://huggingface.co/black-forest-labs/FLUX.1-dev" target="_blank">Flux.1 Dev</a> at fp8-e4m3fn weights, with FP16 T5XXL encoder weights, IPNDM sampler, Beta scheduler, 50 steps.</p>
+
         <p>Styles were produced using <a href="https://github.com/TripleHeadedMonkey/ComfyUI_MileHighStyler" target="_blank">Mile High Styler</a>.</p>
+
         <p>Base prompt was "Winston Churchill looking at iPhone." Images are captioned with the style name (per Mile High Styler) and the final prompt is italicized below that.</p>
-        <p>Want to try different prompts or styles? Flux Style Tester workflow here: <a href="https://civitai.com/models/629642/flux-style-tester" target="_blank">Flux Style Tester</a>.</p>
+
+        <p>Want to try different prompts or styles? Check out the <a href="https://civitai.com/models/629642/flux-style-tester" target="_blank">Flux Style Tester workflow</a>.</p>
     </div>
-    <div class="pagination" id="topPagination"></div>
-    <div class="gallery" id="imageGallery"></div>
-    <div class="pagination" id="bottomPagination"></div>
+
+    <div id="topPagination" class="pagination"></div>
+
+    <div id="imageGallery" class="gallery"></div>
+
+    <div id="bottomPagination" class="pagination"></div>
 
     <script>
-        const baseUrl = 'https://api.github.com/repos/EnragedAntelope/Styles-FluxDev/contents/gallery-assets';
-        const rawBaseUrl = 'https://raw.githubusercontent.com/EnragedAntelope/Styles-FluxDev/main/gallery-assets';
         const imagesPerPage = 250;
-        let currentPage = 1;
-        let totalImages = 0;
+        const totalImages = 500; // Update this if the total number of images changes
+        const currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
 
-        async function fetchRepositoryContents(subdir) {
-            const response = await fetch(`${baseUrl}/${subdir}`);
-            const contents = await response.json();
-            return contents.filter(item => item.type === 'file');
-        }
-
-        async function fetchTextContent(subdir, filename) {
-            try {
-                const response = await fetch(`${rawBaseUrl}/${subdir}/${encodeURIComponent(filename)}`);
-                if (!response.ok) {
-                    throw new Error('Text file not found');
-                }
-                return await response.text();
-            } catch (error) {
-                console.error('Error fetching text content:', error);
-                return '';
-            }
-        }
-
-        function getFileExtension(filename) {
-            return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
-        }
-
-        async function displayPage(page) {
+        function loadGallery() {
             const gallery = document.getElementById('imageGallery');
-            gallery.innerHTML = '';
-            
-            const subdir = `page${page}`;
-            const contents = await fetchRepositoryContents(subdir);
-            
-            const imageFiles = contents.filter(file => ['jpg', 'jpeg', 'png', 'gif'].includes(getFileExtension(file.name).toLowerCase()));
-            
-            const galleryItems = await Promise.all(imageFiles.map(async (imageFile) => {
-                const textFileName = imageFile.name.replace(/\.[^/.]+$/, "") + ".txt";
-                let description = await fetchTextContent(subdir, textFileName);
+            const start = (currentPage - 1) * imagesPerPage + 1;
+            const end = Math.min(currentPage * imagesPerPage, totalImages);
 
-                return {
-                    imagePath: `${rawBaseUrl}/${subdir}/${encodeURIComponent(imageFile.name)}`,
-                    title: decodeURIComponent(imageFile.name.replace(/\.[^/.]+$/, "").replace(/_/g, ' ')),
-                    description: description
-                };
-            }));
-
-            galleryItems.sort((a, b) => a.title.localeCompare(b.title, undefined, {sensitivity: 'base'}));
-
-            galleryItems.forEach(item => {
-                const galleryItem = document.createElement('div');
-                galleryItem.className = 'gallery-item';
-                
+            for (let i = start; i <= end; i++) {
                 const img = document.createElement('img');
-                img.src = item.imagePath;
-                img.alt = item.title;
-                
-                const caption = document.createElement('div');
-                caption.className = 'gallery-item-caption';
-                
-                const title = document.createElement('div');
-                title.className = 'gallery-item-title';
-                title.textContent = item.title;
-                
-                const description = document.createElement('div');
-                description.className = 'gallery-item-description';
-                description.textContent = item.description;
-                
-                caption.appendChild(title);
-                caption.appendChild(description);
-                
-                galleryItem.appendChild(img);
-                galleryItem.appendChild(caption);
-                
-                gallery.appendChild(galleryItem);
-            });
+                img.src = `gallery-assets/page${Math.ceil(i / imagesPerPage)}/${i}.jpg`;
+                img.alt = `Image ${i}`;
+                gallery.appendChild(img);
+            }
 
-            updateImageCounter(page, galleryItems.length);
+            updatePagination();
         }
 
-        function createPagination(elementId) {
-            const pagination = document.getElementById(elementId);
-            pagination.innerHTML = '';
+        function updatePagination() {
+            const totalPages = Math.ceil(totalImages / imagesPerPage);
+            const paginationHtml = `
+                Displaying ${(currentPage - 1) * imagesPerPage + 1}-${Math.min(currentPage * imagesPerPage, totalImages)} of ${totalImages}+ images
+                <br>
+                ${currentPage > 1 ? `<a href="?page=${currentPage - 1}">Previous</a>` : ''}
+                ${currentPage < totalPages ? `<a href="?page=${currentPage + 1}">Next</a>` : ''}
+            `;
 
-            const prevButton = document.createElement('button');
-            prevButton.textContent = 'Previous';
-            prevButton.addEventListener('click', () => {
-                if (currentPage > 1) {
-                    currentPage--;
-                    displayPage(currentPage);
-                    updatePaginationButtons();
-                }
-            });
-
-            const nextButton = document.createElement('button');
-            nextButton.textContent = 'Next';
-            nextButton.addEventListener('click', () => {
-                currentPage++;
-                displayPage(currentPage);
-                updatePaginationButtons();
-            });
-
-            const counter = document.createElement('div');
-            counter.id = `${elementId}Counter`;
-
-            pagination.appendChild(prevButton);
-            pagination.appendChild(counter);
-            pagination.appendChild(nextButton);
+            document.getElementById('topPagination').innerHTML = paginationHtml;
+            document.getElementById('bottomPagination').innerHTML = paginationHtml;
         }
 
-        function updatePaginationButtons() {
-            const topPagination = document.getElementById('topPagination');
-            const bottomPagination = document.getElementById('bottomPagination');
-            [topPagination, bottomPagination].forEach(pagination => {
-                const [prevButton, , nextButton] = pagination.children;
-                prevButton.disabled = currentPage === 1;
-                // We don't know the total number of pages, so we can't disable the next button
-            });
-        }
-
-        function updateImageCounter(page, itemsOnPage) {
-            const start = (page - 1) * imagesPerPage + 1;
-            const end = start + itemsOnPage - 1;
-            totalImages = Math.max(totalImages, end);
-            const counterText = `Displaying ${start}-${end} of ${totalImages}+ images`;
-            
-            document.getElementById('topPaginationCounter').textContent = counterText;
-            document.getElementById('bottomPaginationCounter').textContent = counterText;
-        }
-
-        async function initGallery() {
-            createPagination('topPagination');
-            createPagination('bottomPagination');
-            await displayPage(currentPage);
-            updatePaginationButtons();
-        }
-
-        initGallery();
+        loadGallery();
     </script>
 </body>
 </html>
