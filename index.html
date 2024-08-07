@@ -48,6 +48,28 @@
             font-style: italic;
             color: #666;
         }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .pagination button {
+            margin: 0 5px;
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .pagination button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #imageCounter {
+            text-align: center;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -57,13 +79,16 @@
         <p>Styles were produced using <a href="https://github.com/TripleHeadedMonkey/ComfyUI_MileHighStyler" target="_blank">Mile High Styler</a>.</p>
         <p>Base prompt was "Winston Churchill looking at iPhone." Images are captioned with the style name (per Mile High Styler) and the final prompt is italicized below that.</p>
     </div>
-    <div class="gallery" id="imageGallery">
-        <!-- Gallery items will be dynamically inserted here -->
-    </div>
+    <div id="imageCounter"></div>
+    <div class="gallery" id="imageGallery"></div>
+    <div class="pagination" id="pagination"></div>
 
     <script>
         const apiUrl = 'https://api.github.com/repos/EnragedAntelope/Styles-FluxDev/contents/gallery-assets/';
         const rawContentUrl = 'https://raw.githubusercontent.com/EnragedAntelope/Styles-FluxDev/main/gallery-assets/';
+        const imagesPerPage = 250;
+        let allGalleryItems = [];
+        let currentPage = 1;
 
         async function fetchRepositoryContents() {
             const response = await fetch(apiUrl);
@@ -88,33 +113,39 @@
             return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
         }
 
-		async function createGallery() {
-			const gallery = document.getElementById('imageGallery');
-			const contents = await fetchRepositoryContents();
-			
-			const imageFiles = contents.filter(file => ['jpg', 'jpeg', 'png', 'gif'].includes(getFileExtension(file.name).toLowerCase()));
-			
-			const galleryItems = await Promise.all(imageFiles.map(async (imageFile) => {
-				const textFileName = imageFile.name.replace(/\.[^/.]+$/, "") + ".txt";
-				
-				let description = await fetchTextContent(textFileName);
+        async function createGallery() {
+            const contents = await fetchRepositoryContents();
+            
+            const imageFiles = contents.filter(file => ['jpg', 'jpeg', 'png', 'gif'].includes(getFileExtension(file.name).toLowerCase()));
+            
+            allGalleryItems = await Promise.all(imageFiles.map(async (imageFile) => {
+                const textFileName = imageFile.name.replace(/\.[^/.]+$/, "") + ".txt";
+                
+                let description = await fetchTextContent(textFileName);
 
-				return {
-					imagePath: rawContentUrl + encodeURIComponent(imageFile.name),
-					title: imageFile.name.replace(/\.[^/.]+$/, "").replace(/_/g, ' '),
-					description: description
-				};
-			}));
+                return {
+                    imagePath: rawContentUrl + encodeURIComponent(imageFile.name),
+                    title: imageFile.name.replace(/\.[^/.]+$/, "").replace(/_/g, ' '),
+                    description: description
+                };
+            }));
 
-			// Alphabetize the gallery items by title
-			galleryItems.sort((a, b) => a.title.localeCompare(b.title));
+            // Alphabetize the gallery items by title
+            allGalleryItems.sort((a, b) => a.title.localeCompare(b.title));
 
-			// Display total number of images
-			const totalImages = document.createElement('p');
-			totalImages.textContent = `Total number of images: ${galleryItems.length}`;
-			gallery.appendChild(totalImages);
+            displayPage(1);
+            createPagination();
+        }
 
-			galleryItems.forEach(item => {
+        function displayPage(page) {
+            const gallery = document.getElementById('imageGallery');
+            gallery.innerHTML = '';
+            
+            const startIndex = (page - 1) * imagesPerPage;
+            const endIndex = Math.min(startIndex + imagesPerPage, allGalleryItems.length);
+            
+            for (let i = startIndex; i < endIndex; i++) {
+                const item = allGalleryItems[i];
                 const galleryItem = document.createElement('div');
                 galleryItem.className = 'gallery-item';
                 
@@ -140,7 +171,50 @@
                 galleryItem.appendChild(caption);
                 
                 gallery.appendChild(galleryItem);
+            }
+
+            updateImageCounter(startIndex + 1, endIndex, allGalleryItems.length);
+        }
+
+        function createPagination() {
+            const pagination = document.getElementById('pagination');
+            const pageCount = Math.ceil(allGalleryItems.length / imagesPerPage);
+
+            const prevButton = document.createElement('button');
+            prevButton.textContent = 'Previous';
+            prevButton.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    displayPage(currentPage);
+                    updatePaginationButtons();
+                }
             });
+
+            const nextButton = document.createElement('button');
+            nextButton.textContent = 'Next';
+            nextButton.addEventListener('click', () => {
+                if (currentPage < pageCount) {
+                    currentPage++;
+                    displayPage(currentPage);
+                    updatePaginationButtons();
+                }
+            });
+
+            pagination.appendChild(prevButton);
+            pagination.appendChild(nextButton);
+
+            updatePaginationButtons();
+        }
+
+        function updatePaginationButtons() {
+            const [prevButton, nextButton] = document.getElementById('pagination').children;
+            prevButton.disabled = currentPage === 1;
+            nextButton.disabled = currentPage === Math.ceil(allGalleryItems.length / imagesPerPage);
+        }
+
+        function updateImageCounter(start, end, total) {
+            const counter = document.getElementById('imageCounter');
+            counter.textContent = `Displaying ${start}-${end} of ${total} images`;
         }
 
         createGallery();
