@@ -1,10 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- [Previous head content remains the same] -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Styles FluxDev Gallery</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .intro {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .gallery-item {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .gallery-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .gallery-item-caption {
+            padding: 10px;
+        }
+        .gallery-item-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .gallery-item-description {
+            font-size: 14px;
+            font-style: italic;
+            color: #666;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .pagination button {
+            margin: 0 5px;
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .pagination button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #imageCounter {
+            text-align: center;
+            margin: 0 10px;
+        }
+    </style>
 </head>
 <body>
-    <!-- [Previous body content remains the same] -->
+    <div class="intro">
+        <p>This is intended to identify styles that are incorporated into base Flux Dev. It is not a comprehensive list. Additionally, some of the generated prompts show that Flux recognizes the style, but better prompting might have applied it to the whole image potentially.</p>
+        <p>All images were generated using <a href="https://github.com/comfyanonymous/ComfyUI" target="_blank">ComfyUI</a> and <a href="https://huggingface.co/black-forest-labs/FLUX.1-dev" target="_blank">Flux.1 Dev</a> at fp8-e4m3fn weights, with FP16 T5XXL encoder weights, IPNDM sampler, Beta scheduler, 50 steps.</p>
+        <p>Styles were produced using <a href="https://github.com/TripleHeadedMonkey/ComfyUI_MileHighStyler" target="_blank">Mile High Styler</a>.</p>
+        <p>Base prompt was "Winston Churchill looking at iPhone." Images are captioned with the style name (per Mile High Styler) and the final prompt is italicized below that.</p>
+    </div>
+    <div class="pagination" id="topPagination"></div>
+    <div class="gallery" id="imageGallery"></div>
+    <div class="pagination" id="bottomPagination"></div>
 
     <script>
         const baseUrl = 'https://api.github.com/repos/EnragedAntelope/Styles-FluxDev/contents/gallery-assets';
@@ -90,11 +168,43 @@
         }
 
         function createPagination(elementId) {
-            // [This function remains the same]
+            const pagination = document.getElementById(elementId);
+            pagination.innerHTML = '';
+
+            const prevButton = document.createElement('button');
+            prevButton.textContent = 'Previous';
+            prevButton.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    displayPage(currentPage);
+                    updatePaginationButtons();
+                }
+            });
+
+            const nextButton = document.createElement('button');
+            nextButton.textContent = 'Next';
+            nextButton.addEventListener('click', () => {
+                currentPage++;
+                displayPage(currentPage);
+                updatePaginationButtons();
+            });
+
+            const counter = document.createElement('div');
+            counter.id = `${elementId}Counter`;
+
+            pagination.appendChild(prevButton);
+            pagination.appendChild(counter);
+            pagination.appendChild(nextButton);
         }
 
         function updatePaginationButtons() {
-            // [This function remains the same]
+            const topPagination = document.getElementById('topPagination');
+            const bottomPagination = document.getElementById('bottomPagination');
+            [topPagination, bottomPagination].forEach(pagination => {
+                const [prevButton, , nextButton] = pagination.children;
+                prevButton.disabled = currentPage === 1;
+                // We don't know the total number of pages, so we can't disable the next button
+            });
         }
 
         function updateImageCounter(page, itemsOnPage) {
