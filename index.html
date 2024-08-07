@@ -88,28 +88,33 @@
             return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
         }
 
-        async function createGallery() {
-            const gallery = document.getElementById('imageGallery');
-            const contents = await fetchRepositoryContents();
-            
-            const imageFiles = contents.filter(file => ['jpg', 'jpeg', 'png', 'gif'].includes(getFileExtension(file.name).toLowerCase()));
-            
-            const galleryItems = await Promise.all(imageFiles.map(async (imageFile) => {
-                const textFileName = imageFile.name.replace(/\.[^/.]+$/, "") + ".txt";
-                
-                let description = await fetchTextContent(textFileName);
+		async function createGallery() {
+			const gallery = document.getElementById('imageGallery');
+			const contents = await fetchRepositoryContents();
+			
+			const imageFiles = contents.filter(file => ['jpg', 'jpeg', 'png', 'gif'].includes(getFileExtension(file.name).toLowerCase()));
+			
+			const galleryItems = await Promise.all(imageFiles.map(async (imageFile) => {
+				const textFileName = imageFile.name.replace(/\.[^/.]+$/, "") + ".txt";
+				
+				let description = await fetchTextContent(textFileName);
 
-                return {
-                    imagePath: rawContentUrl + encodeURIComponent(imageFile.name),
-                    title: imageFile.name.replace(/\.[^/.]+$/, "").replace(/_/g, ' '),
-                    description: description
-                };
-            }));
+				return {
+					imagePath: rawContentUrl + encodeURIComponent(imageFile.name),
+					title: imageFile.name.replace(/\.[^/.]+$/, "").replace(/_/g, ' '),
+					description: description
+				};
+			}));
 
-            // Alphabetize the gallery items by title
-            galleryItems.sort((a, b) => a.title.localeCompare(b.title));
+			// Alphabetize the gallery items by title
+			galleryItems.sort((a, b) => a.title.localeCompare(b.title));
 
-            galleryItems.forEach(item => {
+			// Display total number of images
+			const totalImages = document.createElement('p');
+			totalImages.textContent = `Total number of images: ${galleryItems.length}`;
+			gallery.appendChild(totalImages);
+
+			galleryItems.forEach(item => {
                 const galleryItem = document.createElement('div');
                 galleryItem.className = 'gallery-item';
                 
