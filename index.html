@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flux Dev Style Gallery</title>
+    <title>Styles FluxDev Gallery</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -11,6 +11,13 @@
             margin: 0 auto;
             padding: 20px;
             background-color: #f0f0f0;
+        }
+        .intro {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         .gallery {
             display: grid;
@@ -44,88 +51,93 @@
     </style>
 </head>
 <body>
+    <div class="intro">
+        <p>This is intended to identify styles that are incorporated into base Flux Dev. It is not a comprehensive list. Additionally, some of the generated prompts show that Flux recognizes the style, but better prompting might have applied it to the whole image potentially.</p>
+        <p>All images were generated using <a href="https://github.com/comfyanonymous/ComfyUI" target="_blank">ComfyUI</a> and <a href="https://huggingface.co/black-forest-labs/FLUX.1-dev" target="_blank">Flux.1 Dev</a> at fp8-e4m3fn weights, with FP16 T5XXL encoder weights, IPNDM sampler, Beta scheduler, 50 steps.</p>
+        <p>Styles were produced using <a href="https://github.com/TripleHeadedMonkey/ComfyUI_MileHighStyler" target="_blank">Mile High Styler</a>.</p>
+    </div>
     <div class="gallery" id="imageGallery">
         <!-- Gallery items will be dynamically inserted here -->
     </div>
 
-<script>
+    <script>
         const apiUrl = 'https://api.github.com/repos/EnragedAntelope/Styles-FluxDev/contents/gallery-assets/';
         const rawContentUrl = 'https://raw.githubusercontent.com/EnragedAntelope/Styles-FluxDev/main/gallery-assets/';
 
-    async function fetchRepositoryContents() {
-        const response = await fetch(apiUrl);
-        const contents = await response.json();
-        return contents.filter(item => item.type === 'file');
-    }
-
-    async function fetchTextContent(filename) {
-        try {
-            const response = await fetch(rawContentUrl + encodeURIComponent(filename));
-            if (!response.ok) {
-                throw new Error('Text file not found');
-            }
-            return await response.text();
-        } catch (error) {
-            console.error('Error fetching text content:', error);
-            return '';
+        async function fetchRepositoryContents() {
+            const response = await fetch(apiUrl);
+            const contents = await response.json();
+            return contents.filter(item => item.type === 'file');
         }
-    }
 
-    function getFileExtension(filename) {
-        return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
-    }
+        async function fetchTextContent(filename) {
+            try {
+                const response = await fetch(rawContentUrl + encodeURIComponent(filename));
+                if (!response.ok) {
+                    throw new Error('Text file not found');
+                }
+                return await response.text();
+            } catch (error) {
+                console.error('Error fetching text content:', error);
+                return '';
+            }
+        }
 
-    async function createGallery() {
-        const gallery = document.getElementById('imageGallery');
-        const contents = await fetchRepositoryContents();
-        
-        const imageFiles = contents.filter(file => ['jpg', 'jpeg', 'png', 'gif'].includes(getFileExtension(file.name).toLowerCase()));
-        
-        const galleryItems = await Promise.all(imageFiles.map(async (imageFile) => {
-            const textFileName = imageFile.name.replace(/\.[^/.]+$/, "") + ".txt";
-            
-            let description = await fetchTextContent(textFileName);
+        function getFileExtension(filename) {
+            return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
+        }
 
-            return {
-                imagePath: rawContentUrl + encodeURIComponent(imageFile.name),
-                title: imageFile.name.replace(/\.[^/.]+$/, "").replace(/_/g, ' '),
-                description: description
-            };
-        }));
+        async function createGallery() {
+            const gallery = document.getElementById('imageGallery');
+            const contents = await fetchRepositoryContents();
+            
+            const imageFiles = contents.filter(file => ['jpg', 'jpeg', 'png', 'gif'].includes(getFileExtension(file.name).toLowerCase()));
+            
+            const galleryItems = await Promise.all(imageFiles.map(async (imageFile) => {
+                const textFileName = imageFile.name.replace(/\.[^/.]+$/, "") + ".txt";
+                
+                let description = await fetchTextContent(textFileName);
 
-        // Alphabetize the gallery items by title
-        galleryItems.sort((a, b) => a.title.localeCompare(b.title));
+                return {
+                    imagePath: rawContentUrl + encodeURIComponent(imageFile.name),
+                    title: imageFile.name.replace(/\.[^/.]+$/, "").replace(/_/g, ' '),
+                    description: description
+                };
+            }));
 
-        galleryItems.forEach(item => {
-            const galleryItem = document.createElement('div');
-            galleryItem.className = 'gallery-item';
-            
-            const img = document.createElement('img');
-            img.src = item.imagePath;
-            img.alt = item.title;
-            
-            const caption = document.createElement('div');
-            caption.className = 'gallery-item-caption';
-            
-            const title = document.createElement('div');
-            title.className = 'gallery-item-title';
-            title.textContent = item.title;
-            
-            const description = document.createElement('div');
-            description.className = 'gallery-item-description';
-            description.textContent = item.description;
-            
-            caption.appendChild(title);
-            caption.appendChild(description);
-            
-            galleryItem.appendChild(img);
-            galleryItem.appendChild(caption);
-            
-            gallery.appendChild(galleryItem);
-        });
-    }
+            // Alphabetize the gallery items by title
+            galleryItems.sort((a, b) => a.title.localeCompare(b.title));
 
-    createGallery();
-</script>
+            galleryItems.forEach(item => {
+                const galleryItem = document.createElement('div');
+                galleryItem.className = 'gallery-item';
+                
+                const img = document.createElement('img');
+                img.src = item.imagePath;
+                img.alt = item.title;
+                
+                const caption = document.createElement('div');
+                caption.className = 'gallery-item-caption';
+                
+                const title = document.createElement('div');
+                title.className = 'gallery-item-title';
+                title.textContent = item.title;
+                
+                const description = document.createElement('div');
+                description.className = 'gallery-item-description';
+                description.textContent = item.description;
+                
+                caption.appendChild(title);
+                caption.appendChild(description);
+                
+                galleryItem.appendChild(img);
+                galleryItem.appendChild(caption);
+                
+                gallery.appendChild(galleryItem);
+            });
+        }
+
+        createGallery();
+    </script>
 </body>
 </html>
