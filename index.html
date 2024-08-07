@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic GitHub Image Gallery</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .gallery-item {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .gallery-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .gallery-item-caption {
+            padding: 10px;
+        }
+        .gallery-item-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .gallery-item-description {
+            font-size: 14px;
+            font-style: italic;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="gallery" id="imageGallery">
+        <!-- Gallery items will be dynamically inserted here -->
+    </div>
+
+    <script>
+        const apiUrl = 'https://api.github.com/repos/EnragedAntelope/Styles-FluxDev/contents/gallery-assets/';
+        const rawContentUrl = 'https://raw.githubusercontent.com/EnragedAntelope/Styles-FluxDev/main/gallery-assets/';
+
+		async function fetchRepositoryContents() {
+			const response = await fetch(apiUrl);
+			const contents = await response.json();
+			return contents.filter(item => item.type === 'file'); // Only return files, not directories
+		}
+
+        async function fetchTextContent(path) {
+            const response = await fetch(rawContentUrl + path);
+            return await response.text();
+        }
+
+        function getFileExtension(filename) {
+            return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
+        }
+
+        async function createGallery() {
+            const gallery = document.getElementById('imageGallery');
+            const contents = await fetchRepositoryContents();
+            
+            const imageFiles = contents.filter(file => ['jpg', 'jpeg', 'png', 'gif'].includes(getFileExtension(file.name).toLowerCase()));
+            
+            const galleryItems = await Promise.all(imageFiles.map(async (imageFile) => {
+                const textFileName = imageFile.name.replace(/\.[^/.]+$/, "") + ".txt";
+                const textFile = contents.find(file => file.name === textFileName);
+                
+                let description = '';
+                if (textFile) {
+                    description = await fetchTextContent(textFile.path);
+                }
+
+                return {
+                imagePath: rawContentUrl + imageFile.name,
+                    title: imageFile.name.replace(/\.[^/.]+$/, "").replace(/_/g, ' '),
+                    description: description
+                };
+            }));
+
+            // Alphabetize the gallery items by title
+            galleryItems.sort((a, b) => a.title.localeCompare(b.title));
+
+            galleryItems.forEach(item => {
+                const galleryItem = document.createElement('div');
+                galleryItem.className = 'gallery-item';
+                
+                const img = document.createElement('img');
+                img.src = item.imagePath;
+                img.alt = item.title;
+                
+                const caption = document.createElement('div');
+                caption.className = 'gallery-item-caption';
+                
+                const title = document.createElement('div');
+                title.className = 'gallery-item-title';
+                title.textContent = item.title;
+                
+                const description = document.createElement('div');
+                description.className = 'gallery-item-description';
+                description.textContent = item.description;
+                
+                caption.appendChild(title);
+                caption.appendChild(description);
+                
+                galleryItem.appendChild(img);
+                galleryItem.appendChild(caption);
+                
+                gallery.appendChild(galleryItem);
+            });
+        }
+
+        createGallery();
+    </script>
+</body>
+</html>
