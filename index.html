@@ -9,7 +9,7 @@
             font-family: Arial, sans-serif;
             line-height: 1.6;
             color: #333;
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -35,10 +35,18 @@
             flex-wrap: wrap;
             justify-content: space-around;
         }
-        .gallery img {
+        .gallery-item {
+            width: 30%;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .gallery-item img {
             max-width: 100%;
             height: auto;
-            margin-bottom: 10px;
+        }
+        .gallery-item p {
+            margin-top: 5px;
+            font-style: italic;
         }
         .pagination {
             text-align: center;
@@ -75,16 +83,34 @@
         const totalImages = 500; // Update this if the total number of images changes
         const currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
 
-        function loadGallery() {
+        async function loadGallery() {
             const gallery = document.getElementById('imageGallery');
             const start = (currentPage - 1) * imagesPerPage + 1;
             const end = Math.min(currentPage * imagesPerPage, totalImages);
 
             for (let i = start; i <= end; i++) {
+                const item = document.createElement('div');
+                item.className = 'gallery-item';
+
                 const img = document.createElement('img');
                 img.src = `gallery-assets/page${Math.ceil(i / imagesPerPage)}/${i}.jpg`;
                 img.alt = `Image ${i}`;
-                gallery.appendChild(img);
+                item.appendChild(img);
+
+                const caption = document.createElement('p');
+                try {
+                    const response = await fetch(`gallery-assets/page${Math.ceil(i / imagesPerPage)}/${i}.txt`);
+                    if (response.ok) {
+                        caption.textContent = await response.text();
+                    } else {
+                        caption.textContent = `Caption for Image ${i}`;
+                    }
+                } catch (error) {
+                    caption.textContent = `Caption for Image ${i}`;
+                }
+                item.appendChild(caption);
+
+                gallery.appendChild(item);
             }
 
             updatePagination();
