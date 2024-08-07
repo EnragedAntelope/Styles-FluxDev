@@ -1,5 +1,5 @@
 # Styles-FluxDev
-Image gallery of styles for FluxDev
+Image gallery of styles for FluxDev: https://enragedantelope.github.io/Styles-FluxDev/ 
 
 This is intended to identify styles that are incorporated into base Flux Dev. It is not a comprehensive list. Additionally, some of the generated prompts show that Flux recognizes the style, but better prompting might have applied it to the whole image potentially. 
 
