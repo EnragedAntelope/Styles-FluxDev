@@ -80,49 +80,65 @@
 
     <script>
         const imagesPerPage = 250;
-        const totalImages = 500; // Update this if the total number of images changes
         const currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
 
         async function loadGallery() {
             const gallery = document.getElementById('imageGallery');
             const start = (currentPage - 1) * imagesPerPage + 1;
-            const end = Math.min(currentPage * imagesPerPage, totalImages);
+            const end = currentPage * imagesPerPage;
 
-            for (let i = start; i <= end; i++) {
-                const item = document.createElement('div');
-                item.className = 'gallery-item';
+            const pageFolder = `gallery-assets/page${currentPage}`;
+            
+            try {
+                const response = await fetch(`${pageFolder}/`);
+                if (!response.ok) throw new Error('Page not found');
+                
+                const text = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/html');
+                const files = Array.from(doc.querySelectorAll('a'))
+                    .map(a => a.href.split('/').pop())
+                    .filter(filename => filename.endsWith('.png') || filename.endsWith('.PNG'));
 
-                const img = document.createElement('img');
-                img.src = `gallery-assets/page${Math.ceil(i / imagesPerPage)}/${i}.png`;
-                img.alt = `Image ${i}`;
-                item.appendChild(img);
+                for (const file of files) {
+                    const item = document.createElement('div');
+                    item.className = 'gallery-item';
 
-                const caption = document.createElement('p');
-                try {
-                    const response = await fetch(`gallery-assets/page${Math.ceil(i / imagesPerPage)}/${i}.txt`);
-                    if (response.ok) {
-                        caption.textContent = await response.text();
-                    } else {
-                        caption.textContent = `Caption for Image ${i}`;
+                    const img = document.createElement('img');
+                    img.src = `${pageFolder}/${file}`;
+                    img.alt = file.split('.')[0];
+                    item.appendChild(img);
+
+                    const caption = document.createElement('p');
+                    try {
+                        const txtResponse = await fetch(`${pageFolder}/${file.split('.')[0]}.txt`);
+                        if (txtResponse.ok) {
+                            caption.textContent = await txtResponse.text();
+                        } else {
+                            caption.textContent = file.split('.')[0];
+                        }
+                    } catch (error) {
+                        caption.textContent = file.split('.')[0];
                     }
-                } catch (error) {
-                    caption.textContent = `Caption for Image ${i}`;
+                    item.appendChild(caption);
+
+                    gallery.appendChild(item);
                 }
-                item.appendChild(caption);
 
-                gallery.appendChild(item);
+                updatePagination(files.length);
+            } catch (error) {
+                console.error('Error loading gallery:', error);
+                gallery.innerHTML = '<p>No more images to display.</p>';
+                updatePagination(0);
             }
-
-            updatePagination();
         }
 
-        function updatePagination() {
-            const totalPages = Math.ceil(totalImages / imagesPerPage);
+        function updatePagination(imagesOnPage) {
             const paginationHtml = `
-                Displaying ${(currentPage - 1) * imagesPerPage + 1}-${Math.min(currentPage * imagesPerPage, totalImages)} of ${totalImages}+ images
+                Displaying ${(currentPage - 1) * imagesPerPage + 1}-${(currentPage - 1) * imagesPerPage + imagesOnPage} images
                 <br>
                 ${currentPage > 1 ? `<a href="?page=${currentPage - 1}">Previous</a>` : ''}
-                ${currentPage < totalPages ? `<a href="?page=${currentPage + 1}">Next</a>` : ''}
+                ${imagesOnPage === imagesPerPage ? `<a href="?page=${currentPage + 1}">Next</a>` : ''}
             `;
 
             document.getElementById('topPagination').innerHTML = paginationHtml;
