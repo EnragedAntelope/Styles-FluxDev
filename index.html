@@ -87,52 +87,50 @@
             const pageFolder = `gallery-assets/page${currentPage}`;
             let imagesLoaded = 0;
 
-            async function loadImage(index) {
-                const img = new Image();
-                img.src = `${pageFolder}/${index}.png`;
-                
-                return new Promise((resolve, reject) => {
-                    img.onload = () => resolve(img);
-                    img.onerror = reject;
-                });
-            }
-
-            async function loadCaption(index) {
+            async function loadImageList() {
                 try {
-                    const response = await fetch(`${pageFolder}/${index}.txt`);
+                    const response = await fetch(`${pageFolder}/imagelist.json`);
                     if (response.ok) {
-                        return await response.text();
+                        return await response.json();
                     }
                 } catch (error) {
-                    console.error('Error loading caption:', error);
+                    console.error('Error loading image list:', error);
                 }
                 return null;
             }
 
-            for (let i = 1; i <= imagesPerPage; i++) {
-                try {
-                    const img = await loadImage(i);
-                    const caption = await loadCaption(i);
+            const imageList = await loadImageList();
 
-                    const item = document.createElement('div');
-                    item.className = 'gallery-item';
-
-                    item.appendChild(img);
-
-                    const p = document.createElement('p');
-                    p.textContent = caption || `Image ${i}`;
-                    item.appendChild(p);
-
-                    gallery.appendChild(item);
-                    imagesLoaded++;
-                } catch (error) {
-                    console.error('Error loading image:', error);
-                    break; // Stop loading if an image is missing
-                }
+            if (!imageList) {
+                gallery.innerHTML = '<p>No more images to display.</p>';
+                updatePagination(0);
+                return;
             }
 
-            if (imagesLoaded === 0) {
-                gallery.innerHTML = '<p>No more images to display.</p>';
+            for (const imageName of imageList) {
+                const item = document.createElement('div');
+                item.className = 'gallery-item';
+
+                const img = document.createElement('img');
+                img.src = `${pageFolder}/${imageName}.png`;
+                img.alt = imageName;
+                item.appendChild(img);
+
+                const caption = document.createElement('p');
+                try {
+                    const response = await fetch(`${pageFolder}/${imageName}.txt`);
+                    if (response.ok) {
+                        caption.textContent = await response.text();
+                    } else {
+                        caption.textContent = imageName;
+                    }
+                } catch (error) {
+                    caption.textContent = imageName;
+                }
+                item.appendChild(caption);
+
+                gallery.appendChild(item);
+                imagesLoaded++;
             }
 
             updatePagination(imagesLoaded);
