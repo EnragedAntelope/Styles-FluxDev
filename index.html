@@ -47,10 +47,17 @@
         .gallery-item h3 {
             margin-top: 10px;
             margin-bottom: 5px;
+            font-size: 1em;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
         }
         .gallery-item p {
             margin-top: 5px;
             font-style: italic;
+            font-size: 0.9em;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         .pagination {
             text-align: center;
@@ -58,6 +65,24 @@
         }
         .pagination a {
             margin: 0 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .gallery-item {
+                width: 45%;
+            }
+            .gallery-item h3 {
+                font-size: 0.9em;
+            }
+            .gallery-item p {
+                font-size: 0.8em;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .gallery-item {
+                width: 100%;
+            }
         }
     </style>
 </head>
