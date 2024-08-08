@@ -87,9 +87,28 @@
         const currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
         let totalImages = 0;
 
+        async function countTotalImages() {
+            let page = 1;
+            let total = 0;
+            while (true) {
+                try {
+                    const response = await fetch(`gallery-assets/page${page}/imagelist.json`);
+                    if (!response.ok) break;
+                    const imageList = await response.json();
+                    total += imageList.length;
+                    page++;
+                } catch (error) {
+                    break;
+                }
+            }
+            return total;
+        }
+
         async function loadGallery() {
             const gallery = document.getElementById('imageGallery');
             let imagesLoaded = 0;
+
+            totalImages = await countTotalImages();
 
             async function loadImageList(page) {
                 try {
@@ -106,11 +125,9 @@
             let currentImageList = await loadImageList(currentPage);
             if (!currentImageList) {
                 gallery.innerHTML = '<p>No more images to display.</p>';
-                updatePagination(0, 0);
+                updatePagination(0, totalImages);
                 return;
             }
-
-            totalImages = currentImageList.length;
 
             for (let i = 0; i < imagesPerPage && i < currentImageList.length; i++) {
                 const imageName = currentImageList[i];
@@ -148,7 +165,7 @@
 
         function updatePagination(imagesOnPage, totalImages) {
             const startIndex = (currentPage - 1) * imagesPerPage + 1;
-            const endIndex = startIndex + imagesOnPage - 1;
+            const endIndex = Math.min(startIndex + imagesOnPage - 1, totalImages);
             const totalPages = Math.ceil(totalImages / imagesPerPage);
 
             const paginationHtml = `
