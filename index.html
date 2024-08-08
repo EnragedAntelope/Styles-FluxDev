@@ -84,53 +84,58 @@
 
         async function loadGallery() {
             const gallery = document.getElementById('imageGallery');
-            const start = (currentPage - 1) * imagesPerPage + 1;
-            const end = currentPage * imagesPerPage;
-
             const pageFolder = `gallery-assets/page${currentPage}`;
-            
-            try {
-                const response = await fetch(`${pageFolder}/`);
-                if (!response.ok) throw new Error('Page not found');
-                
-                const text = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(text, 'text/html');
-                const files = Array.from(doc.querySelectorAll('a'))
-                    .map(a => a.href.split('/').pop())
-                    .filter(filename => filename.endsWith('.png') || filename.endsWith('.PNG'));
+            let imagesLoaded = 0;
 
-                for (const file of files) {
+            async function loadImage(index) {
+                const img = new Image();
+                img.src = `${pageFolder}/${index}.png`;
+                
+                return new Promise((resolve, reject) => {
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                });
+            }
+
+            async function loadCaption(index) {
+                try {
+                    const response = await fetch(`${pageFolder}/${index}.txt`);
+                    if (response.ok) {
+                        return await response.text();
+                    }
+                } catch (error) {
+                    console.error('Error loading caption:', error);
+                }
+                return null;
+            }
+
+            for (let i = 1; i <= imagesPerPage; i++) {
+                try {
+                    const img = await loadImage(i);
+                    const caption = await loadCaption(i);
+
                     const item = document.createElement('div');
                     item.className = 'gallery-item';
 
-                    const img = document.createElement('img');
-                    img.src = `${pageFolder}/${file}`;
-                    img.alt = file.split('.')[0];
                     item.appendChild(img);
 
-                    const caption = document.createElement('p');
-                    try {
-                        const txtResponse = await fetch(`${pageFolder}/${file.split('.')[0]}.txt`);
-                        if (txtResponse.ok) {
-                            caption.textContent = await txtResponse.text();
-                        } else {
-                            caption.textContent = file.split('.')[0];
-                        }
-                    } catch (error) {
-                        caption.textContent = file.split('.')[0];
-                    }
-                    item.appendChild(caption);
+                    const p = document.createElement('p');
+                    p.textContent = caption || `Image ${i}`;
+                    item.appendChild(p);
 
                     gallery.appendChild(item);
+                    imagesLoaded++;
+                } catch (error) {
+                    console.error('Error loading image:', error);
+                    break; // Stop loading if an image is missing
                 }
-
-                updatePagination(files.length);
-            } catch (error) {
-                console.error('Error loading gallery:', error);
-                gallery.innerHTML = '<p>No more images to display.</p>';
-                updatePagination(0);
             }
+
+            if (imagesLoaded === 0) {
+                gallery.innerHTML = '<p>No more images to display.</p>';
+            }
+
+            updatePagination(imagesLoaded);
         }
 
         function updatePagination(imagesOnPage) {
