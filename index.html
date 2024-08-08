@@ -44,6 +44,10 @@
             max-width: 100%;
             height: auto;
         }
+        .gallery-item h3 {
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
         .gallery-item p {
             margin-top: 5px;
             font-style: italic;
@@ -79,12 +83,12 @@
     <div id="bottomPagination" class="pagination"></div>
 
     <script>
-        const imagesPerPage = 250;
+        const imagesPerPage = 125;
         const currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
 
         async function loadGallery() {
             const gallery = document.getElementById('imageGallery');
-            const pageFolder = `gallery-assets/page${currentPage}`;
+            const pageFolder = `gallery-assets/page${Math.ceil(currentPage / 2)}`;
             let imagesLoaded = 0;
 
             async function loadImageList() {
@@ -107,7 +111,11 @@
                 return;
             }
 
-            for (const imageName of imageList) {
+            const start = (currentPage % 2 === 1) ? 0 : 125;
+            const end = Math.min(start + 125, imageList.length);
+
+            for (let i = start; i < end; i++) {
+                const imageName = imageList[i];
                 const item = document.createElement('div');
                 item.className = 'gallery-item';
 
@@ -116,16 +124,20 @@
                 img.alt = imageName;
                 item.appendChild(img);
 
+                const styleName = document.createElement('h3');
+                styleName.textContent = imageName;
+                item.appendChild(styleName);
+
                 const caption = document.createElement('p');
                 try {
                     const response = await fetch(`${pageFolder}/${imageName}.txt`);
                     if (response.ok) {
                         caption.textContent = await response.text();
                     } else {
-                        caption.textContent = imageName;
+                        caption.textContent = 'Caption not available';
                     }
                 } catch (error) {
-                    caption.textContent = imageName;
+                    caption.textContent = 'Caption not available';
                 }
                 item.appendChild(caption);
 
@@ -133,15 +145,19 @@
                 imagesLoaded++;
             }
 
-            updatePagination(imagesLoaded);
+            updatePagination(imagesLoaded, imageList.length);
         }
 
-        function updatePagination(imagesOnPage) {
+        function updatePagination(imagesOnPage, totalImages) {
+            const startIndex = (currentPage - 1) * imagesPerPage + 1;
+            const endIndex = startIndex + imagesOnPage - 1;
+            const totalPages = Math.ceil(totalImages / imagesPerPage);
+
             const paginationHtml = `
-                Displaying ${(currentPage - 1) * imagesPerPage + 1}-${(currentPage - 1) * imagesPerPage + imagesOnPage} images
+                Displaying ${startIndex}-${endIndex} of ${totalImages} images
                 <br>
                 ${currentPage > 1 ? `<a href="?page=${currentPage - 1}">Previous</a>` : ''}
-                ${imagesOnPage === imagesPerPage ? `<a href="?page=${currentPage + 1}">Next</a>` : ''}
+                ${currentPage < totalPages ? `<a href="?page=${currentPage + 1}">Next</a>` : ''}
             `;
 
             document.getElementById('topPagination').innerHTML = paginationHtml;
