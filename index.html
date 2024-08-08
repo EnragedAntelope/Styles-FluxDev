@@ -85,15 +85,15 @@
     <script>
         const imagesPerPage = 125;
         const currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
+        let totalImages = 0;
 
         async function loadGallery() {
             const gallery = document.getElementById('imageGallery');
-            const pageFolder = `gallery-assets/page${Math.ceil(currentPage / 2)}`;
             let imagesLoaded = 0;
 
-            async function loadImageList() {
+            async function loadImageList(page) {
                 try {
-                    const response = await fetch(`${pageFolder}/imagelist.json`);
+                    const response = await fetch(`gallery-assets/page${page}/imagelist.json`);
                     if (response.ok) {
                         return await response.json();
                     }
@@ -103,24 +103,22 @@
                 return null;
             }
 
-            const imageList = await loadImageList();
-
-            if (!imageList) {
+            let currentImageList = await loadImageList(currentPage);
+            if (!currentImageList) {
                 gallery.innerHTML = '<p>No more images to display.</p>';
-                updatePagination(0);
+                updatePagination(0, 0);
                 return;
             }
 
-            const start = (currentPage % 2 === 1) ? 0 : 125;
-            const end = Math.min(start + 125, imageList.length);
+            totalImages = currentImageList.length;
 
-            for (let i = start; i < end; i++) {
-                const imageName = imageList[i];
+            for (let i = 0; i < imagesPerPage && i < currentImageList.length; i++) {
+                const imageName = currentImageList[i];
                 const item = document.createElement('div');
                 item.className = 'gallery-item';
 
                 const img = document.createElement('img');
-                img.src = `${pageFolder}/${imageName}.png`;
+                img.src = `gallery-assets/page${currentPage}/${imageName}.png`;
                 img.alt = imageName;
                 item.appendChild(img);
 
@@ -130,7 +128,7 @@
 
                 const caption = document.createElement('p');
                 try {
-                    const response = await fetch(`${pageFolder}/${imageName}.txt`);
+                    const response = await fetch(`gallery-assets/page${currentPage}/${imageName}.txt`);
                     if (response.ok) {
                         caption.textContent = await response.text();
                     } else {
@@ -145,7 +143,7 @@
                 imagesLoaded++;
             }
 
-            updatePagination(imagesLoaded, imageList.length);
+            updatePagination(imagesLoaded, totalImages);
         }
 
         function updatePagination(imagesOnPage, totalImages) {
